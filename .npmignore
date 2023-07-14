@@ -1,0 +1,14 @@
+# Dependency directories
+node_modules
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+.DS_Store
+
+# Output of 'npm pack'
+*.tgz
+
+.github/
