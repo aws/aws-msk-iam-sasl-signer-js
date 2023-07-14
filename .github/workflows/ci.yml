@@ -1,0 +1,65 @@
+name: Node.js Signer Library Continuous Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build Node ${{ matrix.node-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - ubuntu-latest
+          - windows-latest
+        node-version:
+          - 14.x
+          - 16.x
+          - 18.x
+          - 20.x
+        # Issue with npm6 on windows resulting in failing workflows:
+        # https://github.com/npm/cli/issues/4341#issuecomment-1040608101
+        # Since node14 is EOL, we can drop this set from our tests.
+        # We still test node14 on other platforms.
+        exclude:
+          - os: windows-latest
+            node-version: 14.x
+
+    steps:
+      - name: Checkout AWS MSK IAM SASL Signer for JavaScript Repository @ default branch latest
+        uses: actions/checkout@v3
+
+      - name: Setup Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          check-latest: true
+
+      - run: npm install -g npm@latest
+
+      - name: Cache NPM modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            package-lock.json
+            packages/*/node_modules
+            packages/*/package-lock.json
+          key: ${{ matrix.os }}-${{ matrix.node-version }}-${{ hashFiles('package.json') }}
+
+      - name: Bootstrap
+        run: |
+          npm install
+
+      - name: Build
+        run: |
+          npm run build
+
+      - name: Execute tests
+        run: |
+          npm run test

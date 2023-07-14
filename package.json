@@ -1,0 +1,36 @@
+{
+  "name": "aws-msk-iam-sasl-signer-js",
+  "version": "1.0.0",
+  "dependencies": {
+    "@aws-crypto/sha256-js": "^4.0.0",
+    "@aws-sdk/credential-providers": "^3.348.0",
+    "@aws-sdk/signature-v4": "^3.342.0",
+    "@aws-sdk/util-format-url": "^3.347.0",
+    "@types/buffers": "0.1.31"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "clean": "rimraf ./dist/*",
+    "prepare": "npm run build",
+    "prebuild": "node -p \"'export const LIB_VERSION = ' + JSON.stringify(require('./package.json').version) + ';'\" > src/version.ts",
+    "build": "tsc",
+    "test": "npm run build && npm run coverage",
+    "coverage": "jest --coverage"
+  },
+  "engines": {
+    "node": ">=14.x"
+  },
+  "author": "Amazon Managed Streaming for Apache Kafka",
+  "license": "Apache-2.0",
+  "typedoc": {
+    "entryPoint": "src/index.ts"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.2",
+    "jest": "^29.5.0",
+    "rimraf": "^5.0.1",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.1.3"
+  }
+}
