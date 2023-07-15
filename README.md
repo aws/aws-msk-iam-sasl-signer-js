@@ -108,9 +108,12 @@ const authToken = await generateAuthTokenFromRole({
 ```js
 const authToken = await generateAuthTokenFromCredentialsProvider({
     region: "AWS region",
-    awsCredentialsProvider: credentialProvider()
+    awsCredentialsProvider: fromNodeProviderChain()
 });
 ```
+
+Find [more examples](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/modules/_aws_sdk_credential_providers.html) of creating credentials provider using AWS SDK for JavaScript v3.
+
 
 
 ## Getting Help
