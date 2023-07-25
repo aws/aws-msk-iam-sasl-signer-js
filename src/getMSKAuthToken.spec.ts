@@ -59,6 +59,28 @@ describe("generateAuthTokenFromCredentialsProvider", () => {
             awsCredentialsProvider: undefined
         })).rejects.toThrowError("AWS credentials provider cannot be empty to generate auth token.")
     });
+
+    it("should throw error when accessKeyId is empty",  () => {
+        expect(generateAuthTokenFromCredentialsProvider({
+            region: "us-east-1",
+            awsCredentialsProvider: jest.fn().mockReturnValue(Promise.resolve({
+                accessKeyId: '',
+                secretAccessKey: 'testSecretAccessKey',
+                sessionToken: 'testSessionToken',
+            }))
+        })).rejects.toThrowError("AWS credentials cannot be empty to generate auth token.")
+    });
+
+    it("should throw error when secretAccessKey is empty",  () => {
+        expect(generateAuthTokenFromCredentialsProvider({
+            region: "us-east-1",
+            awsCredentialsProvider: jest.fn().mockReturnValue(Promise.resolve({
+                accessKeyId: 'testAccessKeyId',
+                secretAccessKey: '',
+                sessionToken: 'testSessionToken',
+            }))
+        })).rejects.toThrowError("AWS credentials cannot be empty to generate auth token.")
+    });
 });
 
 describe("generateAuthToken", () => {
