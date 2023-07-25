@@ -94,13 +94,18 @@ export const generateAuthTokenFromCredentialsProvider = async (options: Generate
     if (!options.awsCredentialsProvider) {
         throw new Error("AWS credentials provider cannot be empty to generate auth token.");
     }
+    // Fetch credentials
+    const credentials = await options.awsCredentialsProvider();
+    if (!credentials.accessKeyId || !credentials.secretAccessKey) {
+        throw new Error("AWS credentials cannot be empty to generate auth token.");
+    }
     const hostname = getHostName(options.region);
 
     // Create SigV4 signer with credentials
     const signer = new SignatureV4({
         service: SIGNING_SERVICE,
         region: options.region,
-        credentials: options.awsCredentialsProvider,
+        credentials: credentials,
         sha256: Sha256,
         applyChecksum: false
     });
