@@ -1,5 +1,5 @@
 import {SignatureV4} from "@aws-sdk/signature-v4"
-import {AwsCredentialIdentityProvider, HttpRequest} from "@aws-sdk/types";
+import {AwsCredentialIdentity, AwsCredentialIdentityProvider, HttpRequest} from "@aws-sdk/types";
 import {formatUrl} from "@aws-sdk/util-format-url";
 import {Sha256} from "@aws-crypto/sha256-js";
 import {getCredentialsFromProfile, getCredentialsFromRole, getDefaultCredentials} from "./mskCredentialProvider";
@@ -13,12 +13,25 @@ import {
     SIGNING_SERVICE
 } from "./constants";
 import {LIB_VERSION} from "./version";
+import {Logger, NoOpLogger} from "./logger";
+import {GetCallerIdentityCommand, STSClient} from "@aws-sdk/client-sts";
+import {GetCallerIdentityResponse} from "@aws-sdk/client-sts/dist-types/models/models_0";
 
 export interface GenerateAuthTokenOptions {
     /**
      * The AWS region to be used for signing request.
      */
     region: string;
+
+    /**
+     * Optional logger for logging trace/debug/info/warn/error messages.
+     */
+    logger?: Logger;
+
+    /**
+     * Optional parameter to log credentials identity.
+     */
+    awsDebugCreds?: boolean;
 }
 
 export interface GenerateAuthTokenFromProfileOptions extends GenerateAuthTokenOptions {
@@ -55,7 +68,7 @@ export const generateAuthTokenFromProfile = async (options: GenerateAuthTokenFro
         throw new Error("AWS Profile name cannot be empty to generate auth token.");
     }
     return generateAuthTokenFromCredentialsProvider({
-        region: options.region,
+        ...options,
         awsCredentialsProvider: getCredentialsFromProfile(options.awsProfileName)
     });
 }
@@ -69,7 +82,7 @@ export const generateAuthTokenFromRole = async (options: GenerateAuthTokenFromRo
         throw new Error("IAM Role ARN cannot be empty to generate auth token.");
     }
     return generateAuthTokenFromCredentialsProvider({
-        region: options.region,
+        ...options,
         awsCredentialsProvider: getCredentialsFromRole(options.awsRoleArn, options.awsRoleSessionName)
     });
 }
@@ -79,7 +92,7 @@ export const generateAuthTokenFromRole = async (options: GenerateAuthTokenFromRo
  */
 export const generateAuthToken = async (options: GenerateAuthTokenOptions): Promise<string> => {
     return generateAuthTokenFromCredentialsProvider({
-        region: options.region,
+        ...options,
         awsCredentialsProvider: getDefaultCredentials()
     });
 }
@@ -94,11 +107,16 @@ export const generateAuthTokenFromCredentialsProvider = async (options: Generate
     if (!options.awsCredentialsProvider) {
         throw new Error("AWS credentials provider cannot be empty to generate auth token.");
     }
+
     // Fetch credentials
     const credentials = await options.awsCredentialsProvider();
     if (!credentials.accessKeyId || !credentials.secretAccessKey) {
         throw new Error("AWS credentials cannot be empty to generate auth token.");
     }
+    if (options.awsDebugCreds) {
+        void logCallerIdentity(credentials, options.logger ?? new NoOpLogger());
+    }
+
     const hostname = getHostName(options.region);
 
     // Create SigV4 signer with credentials
@@ -140,6 +158,14 @@ export const generateAuthTokenFromCredentialsProvider = async (options: Generate
     base64EncodedUrl = base64EncodedUrl.replace('/=/g', '');
     return base64EncodedUrl;
 };
+
+async function logCallerIdentity(credentials: AwsCredentialIdentity, logger: Logger) {
+    const stsClient = new STSClient({
+        credentials: credentials
+    });
+    const getCallerIdentityOutput = await stsClient.send(new GetCallerIdentityCommand({}));
+    logger.debug(`Credentials Identity: {UserId: ${getCallerIdentityOutput.UserId}, Account: ${getCallerIdentityOutput.Account}, Arn: ${getCallerIdentityOutput.Arn}}`);
+}
 
 function getHostName(region: string): string {
     return `kafka.${region}.amazonaws.com`;

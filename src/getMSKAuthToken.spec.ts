@@ -4,6 +4,7 @@ import {
     generateAuthTokenFromProfile,
     generateAuthTokenFromRole
 } from "./getMSKAuthToken";
+import {GetCallerIdentityCommand} from "@aws-sdk/client-sts";
 
 const mockCredentials = {
     accessKeyId: 'testAccessKeyId',
@@ -11,10 +12,17 @@ const mockCredentials = {
     sessionToken: 'testSessionToken',
 };
 
+const mockIdentity = {
+    UserId: 'testUserId',
+    Account: 'testAccount'
+}
+
 const mockNodeProviderChain = jest.fn();
 const mockIniCredentials = jest.fn();
 const mockTemporaryCredentials = jest.fn();
 const mockCredentialProvider = jest.fn().mockReturnValue(Promise.resolve(mockCredentials));
+const mockStsClient = jest.fn();
+const mockSend = jest.fn().mockReturnValue(Promise.resolve(mockIdentity))
 
 jest.mock('@aws-sdk/credential-providers', () => ({
     fromNodeProviderChain: (args) => mockNodeProviderChain.mockImplementation(() => {
@@ -28,10 +36,15 @@ jest.mock('@aws-sdk/credential-providers', () => ({
     })(args)
 }));
 
+jest.mock("@aws-sdk/client-sts", () => ({
+    STSClient: (args) => mockStsClient.mockImplementation(() => {
+        return { send: mockSend };
+    })(args),
+    GetCallerIdentityCommand: jest.fn()
+}));
+
 beforeEach(() => {
-    mockNodeProviderChain.mockReset();
-    mockIniCredentials.mockReset();
-    mockTemporaryCredentials.mockReset();
+    jest.clearAllMocks();
 });
 
 describe("generateAuthTokenFromCredentialsProvider", () => {
@@ -44,6 +57,20 @@ describe("generateAuthTokenFromCredentialsProvider", () => {
         expect(mockNodeProviderChain).toBeCalledTimes(0);
         const signedUrl = getURLFromAuthToken(authToken);
         verifySignedURL(signedUrl, "us-east-1");
+    });
+
+    it("should generate auth token with provided credentials and log credential identity", async () => {
+        let authToken = await generateAuthTokenFromCredentialsProvider({
+            region: "us-east-1",
+            awsCredentialsProvider: mockCredentialProvider,
+            logger: console,
+            awsDebugCreds: true
+        });
+        expect(authToken).toBeTruthy();
+        expect(mockNodeProviderChain).toBeCalledTimes(0);
+        const signedUrl = getURLFromAuthToken(authToken);
+        verifySignedURL(signedUrl, "us-east-1");
+        verifyCallerIdentityInvokes();
     });
 
     it("should throw error when region is empty",  () => {
@@ -97,6 +124,22 @@ describe("generateAuthToken", () => {
         verifySignedURL(signedUrl, "us-east-1");
     });
 
+    it("should generate auth token and log credential identity", async () => {
+        let authToken = await generateAuthToken({
+            region: "us-east-1",
+            logger: console,
+            awsDebugCreds: true
+        });
+        expect(authToken).toBeTruthy();
+        expect(mockNodeProviderChain).toBeCalledTimes(1);
+        expect(mockNodeProviderChain).toHaveBeenCalledWith({
+            "maxRetries": 3
+        });
+        const signedUrl = getURLFromAuthToken(authToken);
+        verifySignedURL(signedUrl, "us-east-1");
+        verifyCallerIdentityInvokes();
+    });
+
     it("should throw error when region is empty",  () => {
         expect(generateAuthToken({ region: '' })).rejects.toThrowError("Region cannot be empty to generate auth token.")
     });
@@ -115,6 +158,23 @@ describe("generateAuthTokenFromProfile", () => {
         });
         const signedUrl = getURLFromAuthToken(authToken);
         verifySignedURL(signedUrl, "us-east-1");
+    });
+
+    it("should generate auth token with profile name input and log credential identity", async () => {
+        let authToken = await generateAuthTokenFromProfile({
+            region: "us-east-1",
+            awsProfileName: "test-profile-name",
+            logger: console,
+            awsDebugCreds: true
+        });
+        expect(authToken).toBeTruthy();
+        expect(mockIniCredentials).toBeCalledTimes(1);
+        expect(mockIniCredentials).toHaveBeenCalledWith({
+            "profile": "test-profile-name"
+        });
+        const signedUrl = getURLFromAuthToken(authToken);
+        verifySignedURL(signedUrl, "us-east-1");
+        verifyCallerIdentityInvokes();
     });
 
     it("should throw error when profile name is empty",  () => {
@@ -167,6 +227,29 @@ describe("generateAuthTokenFromRole", () => {
         verifySignedURL(signedUrl, "us-east-1");
     });
 
+    it("should generate auth token with role arn input  and log credential identity", async () => {
+        let authToken = await generateAuthTokenFromRole({
+            region: "us-east-1",
+            awsRoleArn: "test-role-arn",
+            logger: console,
+            awsDebugCreds: true
+        });
+        expect(authToken).toBeTruthy();
+        expect(mockTemporaryCredentials).toBeCalledTimes(1);
+        expect(mockTemporaryCredentials).toHaveBeenCalledWith({
+            params: {
+                RoleArn: "test-role-arn",
+                RoleSessionName: "MSKSASLDefaultSession"
+            },
+            clientConfig: {
+                maxAttempts: 3
+            }
+        });
+        const signedUrl = getURLFromAuthToken(authToken);
+        verifySignedURL(signedUrl, "us-east-1");
+        verifyCallerIdentityInvokes();
+    });
+
     it("should throw error when role arn is empty",  () => {
         expect(generateAuthTokenFromRole({
             region: "us-east-1",
@@ -195,4 +278,14 @@ function verifySignedURL(signedUrl: URL, region: string) {
     expect(signedUrl.searchParams.get("X-Amz-Security-Token")).toEqual("testSessionToken");
     expect(signedUrl.searchParams.get("X-Amz-Signature")).toBeTruthy();
     expect(signedUrl.searchParams.get("X-Amz-SignedHeaders")).toEqual("host");
+}
+
+function verifyCallerIdentityInvokes() {
+    expect(mockStsClient).toBeCalledTimes(1);
+    expect(mockStsClient).toHaveBeenCalledWith({
+        "credentials": mockCredentials
+    });
+    expect(mockSend).toBeCalledTimes(1);
+    expect(mockSend).toHaveBeenCalledWith(new GetCallerIdentityCommand({}));
+    expect(mockSend).toHaveReturnedWith(Promise.resolve(mockIdentity));
 }

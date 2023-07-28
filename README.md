@@ -114,6 +114,27 @@ const authToken = await generateAuthTokenFromCredentialsProvider({
 
 Find [more examples](https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/modules/_aws_sdk_credential_providers.html) of creating credentials provider using AWS SDK for JavaScript v3.
 
+## Troubleshooting
+### Finding out which identity is being used
+You may receive an `Access denied` error and there may be some doubt as to which credential is being exactly used. The credential may be sourced from a role ARN, EC2 instance profile, credential profile etc.
+If the client side logging is set to DEBUG and the client configuration property includes `logger`, and `awsDebugCreds` set to true:
+
+```js
+const authToken = await generateAuthToken({
+    region: "AWS region",
+    logger: console,
+    awsDebugCreds: true
+});
+```
+the client library will print a debug log of the form:
+```
+Credentials Identity: {UserId: ABCD:test124, Account: 1234567890, Arn: arn:aws:sts::1234567890:assumed-role/abc/test124}
+```
+
+The log line provides the IAM Account, IAM user id and the ARN of the IAM Principal corresponding to the credential being used.
+The awsDebugCreds=true parameter can be combined with any of the above token generation function.
+
+Please note that the log level should also be set to DEBUG for this information to be logged. It is not recommended to run with awsDebugCreds=true since it makes an additional remote call.
 
 
 ## Getting Help
