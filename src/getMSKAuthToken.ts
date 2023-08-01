@@ -114,7 +114,7 @@ export const generateAuthTokenFromCredentialsProvider = async (options: Generate
         throw new Error("AWS credentials cannot be empty to generate auth token.");
     }
     if (options.awsDebugCreds) {
-        void logCallerIdentity(credentials, options.logger ?? new NoOpLogger());
+        await logCallerIdentity(credentials, options.logger ?? new NoOpLogger());
     }
 
     const hostname = getHostName(options.region);
