@@ -1,4 +1,4 @@
-import {SignatureV4} from "@aws-sdk/signature-v4"
+import {SignatureV4} from "@smithy/signature-v4"
 import {AwsCredentialIdentity, AwsCredentialIdentityProvider, HttpRequest} from "@aws-sdk/types";
 import {formatUrl} from "@aws-sdk/util-format-url";
 import {Sha256} from "@aws-crypto/sha256-js";
