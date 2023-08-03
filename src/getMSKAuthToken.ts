@@ -6,16 +6,29 @@ import {getCredentialsFromProfile, getCredentialsFromRole, getDefaultCredentials
 import {
     ACTION_KEY,
     ACTION_VALUE,
+    EXPIRY_IN_MILLIS,
     EXPIRY_IN_SECONDS,
     HOST_HEADER,
     HTTP_METHOD,
     HTTP_PROTOCOL,
+    SIGNING_DATE_REGEX_PATTERN,
     SIGNING_SERVICE
 } from "./constants";
 import {LIB_VERSION} from "./version";
 import {Logger, NoOpLogger} from "./logger";
 import {GetCallerIdentityCommand, STSClient} from "@aws-sdk/client-sts";
-import {GetCallerIdentityResponse} from "@aws-sdk/client-sts/dist-types/models/models_0";
+
+export interface GenerateAuthTokenResponse {
+    /**
+     * OAuth token.
+     */
+    token: string;
+
+    /**
+     * Token expiry time in millis.
+     */
+    expiryTime: number;
+}
 
 export interface GenerateAuthTokenOptions {
     /**
@@ -63,7 +76,7 @@ export interface GenerateAuthTokenFromCredentialOptions extends GenerateAuthToke
 /**
  * Function to generate auth token using a particular credential profile.
  */
-export const generateAuthTokenFromProfile = async (options: GenerateAuthTokenFromProfileOptions): Promise<string> => {
+export const generateAuthTokenFromProfile = async (options: GenerateAuthTokenFromProfileOptions): Promise<GenerateAuthTokenResponse> => {
     if (!options.awsProfileName) {
         throw new Error("AWS Profile name cannot be empty to generate auth token.");
     }
@@ -77,7 +90,7 @@ export const generateAuthTokenFromProfile = async (options: GenerateAuthTokenFro
  * Function to generate auth token by assuming the provided IAM Role's ARN and optionally the session name.
  * To use complete AWS STS feature set, we recommend using function {@link generateAuthTokenFromCredentialsProvider}.
  */
-export const generateAuthTokenFromRole = async (options: GenerateAuthTokenFromRoleOptions): Promise<string> => {
+export const generateAuthTokenFromRole = async (options: GenerateAuthTokenFromRoleOptions): Promise<GenerateAuthTokenResponse> => {
     if (!options.awsRoleArn) {
         throw new Error("IAM Role ARN cannot be empty to generate auth token.");
     }
@@ -90,7 +103,7 @@ export const generateAuthTokenFromRole = async (options: GenerateAuthTokenFromRo
 /**
  * Function to generate auth token from the AWS default credential provider chain.
  */
-export const generateAuthToken = async (options: GenerateAuthTokenOptions): Promise<string> => {
+export const generateAuthToken = async (options: GenerateAuthTokenOptions): Promise<GenerateAuthTokenResponse> => {
     return generateAuthTokenFromCredentialsProvider({
         ...options,
         awsCredentialsProvider: getDefaultCredentials()
@@ -100,7 +113,7 @@ export const generateAuthToken = async (options: GenerateAuthTokenOptions): Prom
 /**
  * Function to generate auth token from the provided {@link AwsCredentialIdentityProvider}.
  */
-export const generateAuthTokenFromCredentialsProvider = async (options: GenerateAuthTokenFromCredentialOptions): Promise<string> => {
+export const generateAuthTokenFromCredentialsProvider = async (options: GenerateAuthTokenFromCredentialOptions): Promise<GenerateAuthTokenResponse> => {
     if (!options.region) {
         throw new Error("Region cannot be empty to generate auth token.");
     }
@@ -146,6 +159,9 @@ export const generateAuthTokenFromCredentialsProvider = async (options: Generate
     const signedRequest = await signer.presign(requestToSign, {
         expiresIn: EXPIRY_IN_SECONDS
     });
+    // Get token expiry time in millis
+    const tokenExpiryInMillis = getTokenExpiry(signedRequest.query['X-Amz-Date'] as string);
+
     // Add user-agent to signed request
     signedRequest.query['User-Agent'] = getUserAgent();
 
@@ -156,7 +172,10 @@ export const generateAuthTokenFromCredentialsProvider = async (options: Generate
     let base64EncodedUrl = Buffer.from(signedUrl, 'utf-8').toString('base64url');
     // Remove any padding characters from the encoded URL if any
     base64EncodedUrl = base64EncodedUrl.replace('/=/g', '');
-    return base64EncodedUrl;
+    return {
+        token: base64EncodedUrl,
+        expiryTime: tokenExpiryInMillis,
+    };
 };
 
 async function logCallerIdentity(credentials: AwsCredentialIdentity, logger: Logger) {
@@ -173,4 +192,20 @@ function getHostName(region: string): string {
 
 function getUserAgent(): string {
     return `aws-msk-iam-sasl-signer-js/${LIB_VERSION}`;
+}
+
+/**
+ * Function to return token expiry in millis.
+ *
+ * @param signingDate Request signing time.
+ */
+function getTokenExpiry(signingDate: string): number {
+    const signingDateRegex = new RegExp(SIGNING_DATE_REGEX_PATTERN)
+    const matchResult = signingDateRegex.exec(signingDate);
+    if (matchResult) {
+        return Date.UTC(Number(matchResult[1]), Number(matchResult[2]) - 1, Number(matchResult[3]), Number(matchResult[4]), Number(matchResult[5]), Number(matchResult[6]))
+            + EXPIRY_IN_MILLIS;
+    } else {
+        throw new Error("Failed tp parse `X-Amz-Date` from token");
+    }
 }

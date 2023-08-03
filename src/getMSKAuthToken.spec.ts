@@ -2,9 +2,10 @@ import {
     generateAuthToken,
     generateAuthTokenFromCredentialsProvider,
     generateAuthTokenFromProfile,
-    generateAuthTokenFromRole
+    generateAuthTokenFromRole, GenerateAuthTokenResponse
 } from "./getMSKAuthToken";
 import {GetCallerIdentityCommand} from "@aws-sdk/client-sts";
+import {SIGNING_DATE_REGEX_PATTERN} from "./constants";
 
 const mockCredentials = {
     accessKeyId: 'testAccessKeyId',
@@ -49,26 +50,26 @@ beforeEach(() => {
 
 describe("generateAuthTokenFromCredentialsProvider", () => {
     it("should generate auth token with provided credentials", async () => {
-        let authToken = await generateAuthTokenFromCredentialsProvider({
+        let authTokenResponse = await generateAuthTokenFromCredentialsProvider({
             region: "us-east-1",
             awsCredentialsProvider: mockCredentialProvider
         });
-        expect(authToken).toBeTruthy();
+        verifyAuthTokenResponse(authTokenResponse);
         expect(mockNodeProviderChain).toBeCalledTimes(0);
-        const signedUrl = getURLFromAuthToken(authToken);
+        const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
     });
 
     it("should generate auth token with provided credentials and log credential identity", async () => {
-        let authToken = await generateAuthTokenFromCredentialsProvider({
+        let authTokenResponse = await generateAuthTokenFromCredentialsProvider({
             region: "us-east-1",
             awsCredentialsProvider: mockCredentialProvider,
             logger: console,
             awsDebugCreds: true
         });
-        expect(authToken).toBeTruthy();
+        verifyAuthTokenResponse(authTokenResponse);
         expect(mockNodeProviderChain).toBeCalledTimes(0);
-        const signedUrl = getURLFromAuthToken(authToken);
+        const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
         verifyCallerIdentityInvokes();
     });
@@ -112,30 +113,30 @@ describe("generateAuthTokenFromCredentialsProvider", () => {
 
 describe("generateAuthToken", () => {
     it("should generate auth token with default credentials", async () => {
-        let authToken = await generateAuthToken({
+        let authTokenResponse = await generateAuthToken({
             region: "us-east-1"
         });
-        expect(authToken).toBeTruthy();
+        verifyAuthTokenResponse(authTokenResponse);
         expect(mockNodeProviderChain).toBeCalledTimes(1);
         expect(mockNodeProviderChain).toHaveBeenCalledWith({
             "maxRetries": 3
         });
-        const signedUrl = getURLFromAuthToken(authToken);
+        const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
     });
 
     it("should generate auth token and log credential identity", async () => {
-        let authToken = await generateAuthToken({
+        let authTokenResponse = await generateAuthToken({
             region: "us-east-1",
             logger: console,
             awsDebugCreds: true
         });
-        expect(authToken).toBeTruthy();
+        verifyAuthTokenResponse(authTokenResponse);
         expect(mockNodeProviderChain).toBeCalledTimes(1);
         expect(mockNodeProviderChain).toHaveBeenCalledWith({
             "maxRetries": 3
         });
-        const signedUrl = getURLFromAuthToken(authToken);
+        const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
         verifyCallerIdentityInvokes();
     });
@@ -147,32 +148,32 @@ describe("generateAuthToken", () => {
 
 describe("generateAuthTokenFromProfile", () => {
     it("should generate auth token with profile name input", async () => {
-        let authToken = await generateAuthTokenFromProfile({
+        let authTokenResponse = await generateAuthTokenFromProfile({
             region: "us-east-1",
             awsProfileName: "test-profile-name"
         });
-        expect(authToken).toBeTruthy();
+        verifyAuthTokenResponse(authTokenResponse);
         expect(mockIniCredentials).toBeCalledTimes(1);
         expect(mockIniCredentials).toHaveBeenCalledWith({
             "profile": "test-profile-name"
         });
-        const signedUrl = getURLFromAuthToken(authToken);
+        const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
     });
 
     it("should generate auth token with profile name input and log credential identity", async () => {
-        let authToken = await generateAuthTokenFromProfile({
+        let authTokenResponse = await generateAuthTokenFromProfile({
             region: "us-east-1",
             awsProfileName: "test-profile-name",
             logger: console,
             awsDebugCreds: true
         });
-        expect(authToken).toBeTruthy();
+        verifyAuthTokenResponse(authTokenResponse);
         expect(mockIniCredentials).toBeCalledTimes(1);
         expect(mockIniCredentials).toHaveBeenCalledWith({
             "profile": "test-profile-name"
         });
-        const signedUrl = getURLFromAuthToken(authToken);
+        const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
         verifyCallerIdentityInvokes();
     });
@@ -187,11 +188,11 @@ describe("generateAuthTokenFromProfile", () => {
 
 describe("generateAuthTokenFromRole", () => {
     it("should generate auth token with role arn input", async () => {
-        let authToken = await generateAuthTokenFromRole({
+        let authTokenResponse = await generateAuthTokenFromRole({
             region: "us-east-1",
             awsRoleArn: "test-role-arn"
         });
-        expect(authToken).toBeTruthy();
+        verifyAuthTokenResponse(authTokenResponse);
         expect(mockTemporaryCredentials).toBeCalledTimes(1);
         expect(mockTemporaryCredentials).toHaveBeenCalledWith({
             params: {
@@ -202,17 +203,17 @@ describe("generateAuthTokenFromRole", () => {
                 maxAttempts: 3
             }
         });
-        const signedUrl = getURLFromAuthToken(authToken);
+        const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
     });
 
     it("should generate auth token with role arn and session name input", async () => {
-        let authToken = await generateAuthTokenFromRole({
+        let authTokenResponse = await generateAuthTokenFromRole({
             region: "us-east-1",
             awsRoleArn: "test-role-arn",
             awsRoleSessionName: "test-session"
         });
-        expect(authToken).toBeTruthy();
+        verifyAuthTokenResponse(authTokenResponse);
         expect(mockTemporaryCredentials).toBeCalledTimes(1);
         expect(mockTemporaryCredentials).toHaveBeenCalledWith({
             params: {
@@ -223,18 +224,18 @@ describe("generateAuthTokenFromRole", () => {
                 maxAttempts: 3
             }
         });
-        const signedUrl = getURLFromAuthToken(authToken);
+        const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
     });
 
     it("should generate auth token with role arn input  and log credential identity", async () => {
-        let authToken = await generateAuthTokenFromRole({
+        let authTokenResponse = await generateAuthTokenFromRole({
             region: "us-east-1",
             awsRoleArn: "test-role-arn",
             logger: console,
             awsDebugCreds: true
         });
-        expect(authToken).toBeTruthy();
+        verifyAuthTokenResponse(authTokenResponse);
         expect(mockTemporaryCredentials).toBeCalledTimes(1);
         expect(mockTemporaryCredentials).toHaveBeenCalledWith({
             params: {
@@ -245,7 +246,7 @@ describe("generateAuthTokenFromRole", () => {
                 maxAttempts: 3
             }
         });
-        const signedUrl = getURLFromAuthToken(authToken);
+        const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
         verifyCallerIdentityInvokes();
     });
@@ -257,6 +258,11 @@ describe("generateAuthTokenFromRole", () => {
         })).rejects.toThrowError("IAM Role ARN cannot be empty to generate auth token.")
     });
 });
+
+function verifyAuthTokenResponse(authTokenResponse: GenerateAuthTokenResponse) {
+    expect(authTokenResponse.token).toBeTruthy();
+    expect(authTokenResponse.expiryTime).toBeTruthy();
+}
 
 function getURLFromAuthToken(authToken: string): URL {
     let decodedToken = Buffer.from(authToken, 'base64url').toString('utf-8');
@@ -273,7 +279,7 @@ function verifySignedURL(signedUrl: URL, region: string) {
     expect(credentialTokens[2]).toEqual(region);
     expect(credentialTokens[3]).toEqual("kafka-cluster");
     expect(credentialTokens[4]).toEqual("aws4_request");
-    expect(signedUrl.searchParams.get("X-Amz-Date")).toMatch(new RegExp("(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})Z"));
+    expect(signedUrl.searchParams.get("X-Amz-Date")).toMatch(new RegExp(SIGNING_DATE_REGEX_PATTERN));
     expect(signedUrl.searchParams.get("X-Amz-Expires")).toEqual("900");
     expect(signedUrl.searchParams.get("X-Amz-Security-Token")).toEqual("testSessionToken");
     expect(signedUrl.searchParams.get("X-Amz-Signature")).toBeTruthy();

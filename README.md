@@ -35,9 +35,9 @@ const { generateAuthToken } = require('aws-msk-iam-sasl-signer-js')
 
 async function oauthBearerTokenProvider(region) {
     // Uses AWS Default Credentials Provider Chain to fetch credentials
-    const authToken = await generateAuthToken({ region });
+    const authTokenResponse = await generateAuthToken({ region });
     return {
-        value: authToken
+        value: authTokenResponse.token
     }
 }
 
@@ -87,7 +87,7 @@ run().catch(console.error)
 ### Specifying an alternate credential profile for a client
 
 ```js
-const authToken = await generateAuthTokenFromProfile({
+const authTokenResponse = await generateAuthTokenFromProfile({
     region: "AWS region",
     awsProfileName: "<Credential Profile Name>"
 });
@@ -96,7 +96,7 @@ const authToken = await generateAuthTokenFromProfile({
 ### Specifying a role based credential profile for a client
 
 ```js
-const authToken = await generateAuthTokenFromRole({
+const authTokenResponse = await generateAuthTokenFromRole({
     region: "AWS region",
     awsRoleArn: "<IAM Role ARN>",
     awsRoleSessionName: "<Optional session name>"
@@ -106,7 +106,7 @@ const authToken = await generateAuthTokenFromRole({
 ### Specifying AWS Credential Provider for a client
 
 ```js
-const authToken = await generateAuthTokenFromCredentialsProvider({
+const authTokenResponse = await generateAuthTokenFromCredentialsProvider({
     region: "AWS region",
     awsCredentialsProvider: fromNodeProviderChain()
 });
@@ -120,7 +120,7 @@ You may receive an `Access denied` error and there may be some doubt as to which
 If the client side logging is set to DEBUG and the client configuration property includes `logger`, and `awsDebugCreds` set to true:
 
 ```js
-const authToken = await generateAuthToken({
+const authTokenResponse = await generateAuthToken({
     region: "AWS region",
     logger: console,
     awsDebugCreds: true
