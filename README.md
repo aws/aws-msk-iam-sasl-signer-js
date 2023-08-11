@@ -2,6 +2,7 @@
 
 [![Build status](https://github.com/aws/aws-msk-iam-sasl-signer-js/actions/workflows/ci.yml/badge.svg)](https://github.com/aws/aws-msk-iam-sasl-signer-js/actions/workflows/ci.yml) 
 [![Apache V2 License](https://img.shields.io/badge/license-Apache%20V2-blue.svg)](https://github.com/aws/aws-msk-iam-sasl-signer-js/blob/main/LICENSE)
+[![Security Scan](https://github.com/aws/aws-msk-iam-sasl-signer-js/actions/workflows/securityscan.yml/badge.svg?branch=main)](https://github.com/aws/aws-msk-iam-sasl-signer-js/actions/workflows/securityscan.yml)
 
 `aws-msk-iam-sasl-signer-js` is the AWS MSK IAM SASL Signer for JavaScript programming language.
 
