@@ -40,8 +40,6 @@ jobs:
           node-version: ${{ matrix.node-version }}
           check-latest: true
 
-      - run: npm install -g npm@latest
-
       - name: Cache NPM modules
         uses: actions/cache@v3
         with:
