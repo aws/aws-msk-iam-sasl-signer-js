@@ -127,7 +127,7 @@ export const generateAuthTokenFromCredentialsProvider = async (options: Generate
         throw new Error("AWS credentials cannot be empty to generate auth token.");
     }
     if (options.awsDebugCreds) {
-        await logCallerIdentity(credentials, options.logger ?? new NoOpLogger());
+        await logCallerIdentity(options.region, credentials, options.logger ?? new NoOpLogger());
     }
 
     const hostname = getHostName(options.region);
@@ -178,9 +178,10 @@ export const generateAuthTokenFromCredentialsProvider = async (options: Generate
     };
 };
 
-async function logCallerIdentity(credentials: AwsCredentialIdentity, logger: Logger) {
+async function logCallerIdentity(region: string, credentials: AwsCredentialIdentity, logger: Logger) {
     const stsClient = new STSClient({
-        credentials: credentials
+        credentials: credentials,
+        region: region
     });
     const getCallerIdentityOutput = await stsClient.send(new GetCallerIdentityCommand({}));
     logger.debug(`Credentials Identity: {UserId: ${getCallerIdentityOutput.UserId}, Account: ${getCallerIdentityOutput.Account}, Arn: ${getCallerIdentityOutput.Arn}}`);

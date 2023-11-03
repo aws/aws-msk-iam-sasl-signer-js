@@ -71,7 +71,7 @@ describe("generateAuthTokenFromCredentialsProvider", () => {
         expect(mockNodeProviderChain).toBeCalledTimes(0);
         const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
-        verifyCallerIdentityInvokes();
+        verifyCallerIdentityInvokes("us-east-1");
     });
 
     it("should throw error when region is empty",  () => {
@@ -138,7 +138,7 @@ describe("generateAuthToken", () => {
         });
         const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
-        verifyCallerIdentityInvokes();
+        verifyCallerIdentityInvokes("us-east-1");
     });
 
     it("should throw error when region is empty",  () => {
@@ -175,7 +175,7 @@ describe("generateAuthTokenFromProfile", () => {
         });
         const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
-        verifyCallerIdentityInvokes();
+        verifyCallerIdentityInvokes("us-east-1");
     });
 
     it("should throw error when profile name is empty",  () => {
@@ -251,7 +251,7 @@ describe("generateAuthTokenFromRole", () => {
         });
         const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-west-1");
-        verifyCallerIdentityInvokes();
+        verifyCallerIdentityInvokes("us-west-1");
     });
 
     it("should throw error when role arn is empty",  () => {
@@ -289,10 +289,11 @@ function verifySignedURL(signedUrl: URL, region: string) {
     expect(signedUrl.searchParams.get("X-Amz-SignedHeaders")).toEqual("host");
 }
 
-function verifyCallerIdentityInvokes() {
+function verifyCallerIdentityInvokes(region: string) {
     expect(mockStsClient).toBeCalledTimes(1);
     expect(mockStsClient).toHaveBeenCalledWith({
-        "credentials": mockCredentials
+        "credentials": mockCredentials,
+        "region": region
     });
     expect(mockSend).toBeCalledTimes(1);
     expect(mockSend).toHaveBeenCalledWith(new GetCallerIdentityCommand({}));
