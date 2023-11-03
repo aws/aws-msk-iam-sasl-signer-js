@@ -200,6 +200,7 @@ describe("generateAuthTokenFromRole", () => {
                 RoleSessionName: "MSKSASLDefaultSession"
             },
             clientConfig: {
+                region: "us-east-1",
                 maxAttempts: 3
             }
         });
@@ -221,6 +222,7 @@ describe("generateAuthTokenFromRole", () => {
                 RoleSessionName: "test-session"
             },
             clientConfig: {
+                region: "us-east-1",
                 maxAttempts: 3
             }
         });
@@ -230,7 +232,7 @@ describe("generateAuthTokenFromRole", () => {
 
     it("should generate auth token with role arn input  and log credential identity", async () => {
         let authTokenResponse = await generateAuthTokenFromRole({
-            region: "us-east-1",
+            region: "us-west-1",
             awsRoleArn: "test-role-arn",
             logger: console,
             awsDebugCreds: true
@@ -243,11 +245,12 @@ describe("generateAuthTokenFromRole", () => {
                 RoleSessionName: "MSKSASLDefaultSession"
             },
             clientConfig: {
+                region: "us-west-1",
                 maxAttempts: 3
             }
         });
         const signedUrl = getURLFromAuthToken(authTokenResponse.token);
-        verifySignedURL(signedUrl, "us-east-1");
+        verifySignedURL(signedUrl, "us-west-1");
         verifyCallerIdentityInvokes();
     });
 
