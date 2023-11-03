@@ -96,7 +96,7 @@ export const generateAuthTokenFromRole = async (options: GenerateAuthTokenFromRo
     }
     return generateAuthTokenFromCredentialsProvider({
         ...options,
-        awsCredentialsProvider: getCredentialsFromRole(options.awsRoleArn, options.awsRoleSessionName)
+        awsCredentialsProvider: getCredentialsFromRole(options.region, options.awsRoleArn, options.awsRoleSessionName)
     });
 }
 

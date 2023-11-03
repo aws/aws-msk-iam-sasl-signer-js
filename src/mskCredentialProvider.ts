@@ -8,13 +8,14 @@ export const getCredentialsFromProfile = (awsProfileName: string): AwsCredential
     });
 };
 
-export const getCredentialsFromRole = (awsRoleArn: string, awsRoleSessionName?: string): AwsCredentialIdentityProvider => {
+export const getCredentialsFromRole = (region: string, awsRoleArn: string, awsRoleSessionName?: string): AwsCredentialIdentityProvider => {
     return fromTemporaryCredentials({
         params: {
             RoleArn: awsRoleArn,
             RoleSessionName: awsRoleSessionName ?? "MSKSASLDefaultSession"
         },
         clientConfig: {
+            region: region,
             maxAttempts: DEFAULT_MAX_RETRIES
         }
     });
