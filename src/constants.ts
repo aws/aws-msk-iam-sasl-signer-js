@@ -1,0 +1,10 @@
+export const SIGNING_SERVICE = "kafka-cluster";
+export const HTTP_METHOD = "GET";
+export const HTTP_PROTOCOL = "https";
+export const HOST_HEADER = "host";
+export const ACTION_KEY = "Action";
+export const ACTION_VALUE = "kafka-cluster:Connect";
+export const SIGNING_DATE_REGEX_PATTERN = "(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})Z";
+export const EXPIRY_IN_SECONDS = 900;
+export const EXPIRY_IN_MILLIS = EXPIRY_IN_SECONDS * 1000;
+export const DEFAULT_MAX_RETRIES = 3;

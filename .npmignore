@@ -1,0 +1,24 @@
+# Dependency directories
+node_modules
+
+# Test coverage
+coverage
+
+/CHANGELOG.md
+/CODE_OF_CONDUCT.md
+/CONTRIBUTING.md
+
+/tsconfig.json
+/jest.config.js
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+.DS_Store
+
+# Output of 'npm pack'
+*.tgz
+
+.github/
