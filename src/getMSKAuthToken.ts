@@ -103,10 +103,10 @@ export const generateAuthTokenFromRole = async (options: GenerateAuthTokenFromRo
 /**
  * Function to generate auth token from the AWS default credential provider chain.
  */
-export const generateAuthToken = async (options: GenerateAuthTokenOptions): Promise<GenerateAuthTokenResponse> => {
+export const generateAuthToken = async (options: GenerateAuthTokenOptions | GenerateAuthTokenFromProfileOptions | GenerateAuthTokenFromRoleOptions): Promise<GenerateAuthTokenResponse> => {
     return generateAuthTokenFromCredentialsProvider({
         ...options,
-        awsCredentialsProvider: getDefaultCredentials()
+        awsCredentialsProvider: getDefaultCredentials(options)
     });
 }
 

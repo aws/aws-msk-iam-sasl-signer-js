@@ -119,7 +119,30 @@ describe("generateAuthToken", () => {
         verifyAuthTokenResponse(authTokenResponse);
         expect(mockNodeProviderChain).toBeCalledTimes(1);
         expect(mockNodeProviderChain).toHaveBeenCalledWith({
-            "maxRetries": 3
+            "maxRetries": 3,
+            "roleSessionName": "MSKSASLDefaultSession",
+            "clientConfig": {
+                "region": "us-east-1",
+            },
+        });
+        const signedUrl = getURLFromAuthToken(authTokenResponse.token);
+        verifySignedURL(signedUrl, "us-east-1");
+    });
+
+    it("should generate auth token with set role session name", async () => {
+        const roleSessionName = "my-custom-name";
+        const authTokenResponse = await generateAuthToken({
+            region: "us-east-1",
+            awsRoleSessionName: roleSessionName
+        });
+        verifyAuthTokenResponse(authTokenResponse);
+        expect(mockNodeProviderChain).toBeCalledTimes(1);
+        expect(mockNodeProviderChain).toHaveBeenCalledWith({
+            "maxRetries": 3,
+            "roleSessionName": roleSessionName,
+            "clientConfig": {
+                "region": "us-east-1",
+            },
         });
         const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
@@ -134,7 +157,11 @@ describe("generateAuthToken", () => {
         verifyAuthTokenResponse(authTokenResponse);
         expect(mockNodeProviderChain).toBeCalledTimes(1);
         expect(mockNodeProviderChain).toHaveBeenCalledWith({
-            "maxRetries": 3
+            "maxRetries": 3,
+            "roleSessionName": "MSKSASLDefaultSession",
+            "clientConfig": {
+                "region": "us-east-1",
+            },
         });
         const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
