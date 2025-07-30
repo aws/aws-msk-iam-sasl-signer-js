@@ -6,7 +6,6 @@ import {getCredentialsFromProfile, getCredentialsFromRole, getDefaultCredentials
 import {
     ACTION_KEY,
     ACTION_VALUE,
-    EXPIRY_IN_MILLIS,
     EXPIRY_IN_SECONDS,
     HOST_HEADER,
     HTTP_METHOD,
@@ -155,12 +154,16 @@ export const generateAuthTokenFromCredentialsProvider = async (options: Generate
         }
     };
 
+    const ttl = credentials.expiration !== undefined
+        ? Math.min((credentials.expiration.getTime() - Date.now()) / 1000, EXPIRY_IN_SECONDS)
+        : EXPIRY_IN_SECONDS;
+
     // Sign request
     const signedRequest = await signer.presign(requestToSign, {
-        expiresIn: EXPIRY_IN_SECONDS
+        expiresIn: ttl
     });
     // Get token expiry time in millis
-    const tokenExpiryInMillis = getTokenExpiry(signedRequest.query['X-Amz-Date'] as string);
+    const tokenExpiryInMillis = getTokenExpiry(signedRequest.query['X-Amz-Date'] as string, ttl * 1000);
 
     // Add user-agent to signed request
     signedRequest.query['User-Agent'] = getUserAgent();
@@ -199,14 +202,15 @@ function getUserAgent(): string {
  * Function to return token expiry in millis.
  *
  * @param signingDate Request signing time.
+ * @param ttl         Time To Live for token in millis
  */
-function getTokenExpiry(signingDate: string): number {
-    const signingDateRegex = new RegExp(SIGNING_DATE_REGEX_PATTERN)
+function getTokenExpiry(signingDate: string, ttl: number): number {
+    const signingDateRegex = new RegExp(SIGNING_DATE_REGEX_PATTERN);
     const matchResult = signingDateRegex.exec(signingDate);
-    if (matchResult) {
-        return Date.UTC(Number(matchResult[1]), Number(matchResult[2]) - 1, Number(matchResult[3]), Number(matchResult[4]), Number(matchResult[5]), Number(matchResult[6]))
-            + EXPIRY_IN_MILLIS;
-    } else {
-        throw new Error("Failed tp parse `X-Amz-Date` from token");
+    if (!matchResult) {
+        throw new Error("Failed to parse `X-Amz-Date` from token");
     }
+
+    return Date.UTC(Number(matchResult[1]), Number(matchResult[2]) - 1, Number(matchResult[3]), Number(matchResult[4]), Number(matchResult[5]), Number(matchResult[6]))
+        + ttl;
 }
