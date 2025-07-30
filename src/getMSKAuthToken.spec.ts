@@ -46,6 +46,7 @@ jest.mock("@aws-sdk/client-sts", () => ({
 
 beforeEach(() => {
     jest.clearAllMocks();
+    jest.clearAllTimers();
 });
 
 describe("generateAuthTokenFromCredentialsProvider", () => {
@@ -72,6 +73,30 @@ describe("generateAuthTokenFromCredentialsProvider", () => {
         const signedUrl = getURLFromAuthToken(authTokenResponse.token);
         verifySignedURL(signedUrl, "us-east-1");
         verifyCallerIdentityInvokes("us-east-1");
+    });
+
+    it("should generate auth token with expiryTime sooner when credential close to expiring", async () => {
+        const now = Date.now();
+        jest.useFakeTimers().setSystemTime(now);
+        const ttl = 10;
+        const credentials = {
+            accessKeyId: 'testAccessKeyId',
+            secretAccessKey: 'testSecretAccessKey',
+            sessionToken: 'testSessionToken',
+            expiration: new Date(now + ttl * 1000),
+        };
+        const expiringMockCredentialProvider = jest.fn().mockReturnValue(Promise.resolve(credentials));
+        const authTokenResponse = await generateAuthTokenFromCredentialsProvider({
+            region: "us-east-1",
+            awsCredentialsProvider: expiringMockCredentialProvider,
+            logger: console,
+            awsDebugCreds: true
+        });
+        verifyAuthTokenResponse(authTokenResponse);
+        expect(mockNodeProviderChain).toBeCalledTimes(0);
+        const signedUrl = getURLFromAuthToken(authTokenResponse.token);
+        verifySignedURL(signedUrl, "us-east-1", ttl);
+        verifyCallerIdentityInvokes("us-east-1", credentials);
     });
 
     it("should throw error when region is empty",  () => {
@@ -299,7 +324,7 @@ function getURLFromAuthToken(authToken: string): URL {
     return new URL(decodedToken);
 }
 
-function verifySignedURL(signedUrl: URL, region: string) {
+function verifySignedURL(signedUrl: URL, region: string, ttl?: number) {
     expect(signedUrl.hostname).toEqual(`kafka.${region}.amazonaws.com`);
     expect(signedUrl.searchParams.get("Action")).toEqual("kafka-cluster:Connect");
     expect(signedUrl.searchParams.get("User-Agent")).toContain("aws-msk-iam-sasl-signer-js/");
@@ -310,16 +335,16 @@ function verifySignedURL(signedUrl: URL, region: string) {
     expect(credentialTokens[3]).toEqual("kafka-cluster");
     expect(credentialTokens[4]).toEqual("aws4_request");
     expect(signedUrl.searchParams.get("X-Amz-Date")).toMatch(new RegExp(SIGNING_DATE_REGEX_PATTERN));
-    expect(signedUrl.searchParams.get("X-Amz-Expires")).toEqual("900");
+    expect(signedUrl.searchParams.get("X-Amz-Expires")).toEqual(ttl?.toString() ?? "900");
     expect(signedUrl.searchParams.get("X-Amz-Security-Token")).toEqual("testSessionToken");
     expect(signedUrl.searchParams.get("X-Amz-Signature")).toBeTruthy();
     expect(signedUrl.searchParams.get("X-Amz-SignedHeaders")).toEqual("host");
 }
 
-function verifyCallerIdentityInvokes(region: string) {
+function verifyCallerIdentityInvokes(region: string, credentials?) {
     expect(mockStsClient).toBeCalledTimes(1);
     expect(mockStsClient).toHaveBeenCalledWith({
-        "credentials": mockCredentials,
+        "credentials": credentials ?? mockCredentials,
         "region": region
     });
     expect(mockSend).toBeCalledTimes(1);
