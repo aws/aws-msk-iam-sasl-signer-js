@@ -1,6 +1,11 @@
 import {AwsCredentialIdentityProvider} from "@aws-sdk/types";
 import {fromIni, fromNodeProviderChain, fromTemporaryCredentials} from "@aws-sdk/credential-providers";
 import {DEFAULT_MAX_RETRIES} from "./constants";
+import {
+    GenerateAuthTokenFromProfileOptions,
+    GenerateAuthTokenFromRoleOptions,
+    GenerateAuthTokenOptions
+} from "./getMSKAuthToken";
 
 export const getCredentialsFromProfile = (awsProfileName: string): AwsCredentialIdentityProvider => {
     return fromIni({
@@ -21,8 +26,12 @@ export const getCredentialsFromRole = (region: string, awsRoleArn: string, awsRo
     });
 };
 
-export const getDefaultCredentials = (): AwsCredentialIdentityProvider => {
+export const getDefaultCredentials = (options?: GenerateAuthTokenOptions | GenerateAuthTokenFromProfileOptions | GenerateAuthTokenFromRoleOptions): AwsCredentialIdentityProvider => {
     return fromNodeProviderChain({
-        maxRetries: DEFAULT_MAX_RETRIES
+        maxRetries: DEFAULT_MAX_RETRIES,
+        roleSessionName: (options as GenerateAuthTokenFromRoleOptions)?.awsRoleSessionName ?? "MSKSASLDefaultSession",
+        clientConfig: {
+            region: options?.region,
+        }
     });
 };
