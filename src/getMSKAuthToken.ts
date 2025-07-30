@@ -25,7 +25,7 @@ export interface GenerateAuthTokenResponse {
     token: string;
 
     /**
-     * Token expiry time in millis.
+     * Token expiration time in milliseconds since Unix epoch.
      */
     expiryTime: number;
 }
