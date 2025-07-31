@@ -1,7 +1,7 @@
 {
   "name": "aws-msk-iam-sasl-signer-js",
   "description": "AWS MSK IAM SASL Signer for JavaScript programming language",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "dependencies": {
     "@aws-crypto/sha256-js": "^4.0.0",
     "@aws-sdk/client-sts": "^3.378.0",
