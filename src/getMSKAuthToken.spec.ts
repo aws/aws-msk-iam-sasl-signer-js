@@ -78,12 +78,13 @@ describe("generateAuthTokenFromCredentialsProvider", () => {
     it("should generate auth token with expiryTime sooner when credential close to expiring", async () => {
         const now = Date.now();
         jest.useFakeTimers().setSystemTime(now);
-        const ttl = 10;
+        const ttlMs = 9900; // account for an expiration time of partial seconds
+        const ttlS = 9;
         const credentials = {
             accessKeyId: 'testAccessKeyId',
             secretAccessKey: 'testSecretAccessKey',
             sessionToken: 'testSessionToken',
-            expiration: new Date(now + ttl * 1000),
+            expiration: new Date(now + ttlMs),
         };
         const expiringMockCredentialProvider = jest.fn().mockReturnValue(Promise.resolve(credentials));
         const authTokenResponse = await generateAuthTokenFromCredentialsProvider({
@@ -95,7 +96,7 @@ describe("generateAuthTokenFromCredentialsProvider", () => {
         verifyAuthTokenResponse(authTokenResponse);
         expect(mockNodeProviderChain).toBeCalledTimes(0);
         const signedUrl = getURLFromAuthToken(authTokenResponse.token);
-        verifySignedURL(signedUrl, "us-east-1", ttl);
+        verifySignedURL(signedUrl, "us-east-1", ttlS);
         verifyCallerIdentityInvokes("us-east-1", credentials);
     });
 

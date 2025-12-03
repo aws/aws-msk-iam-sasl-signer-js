@@ -155,7 +155,7 @@ export const generateAuthTokenFromCredentialsProvider = async (options: Generate
     };
 
     const ttl = credentials.expiration !== undefined
-        ? Math.min((credentials.expiration.getTime() - Date.now()) / 1000, EXPIRY_IN_SECONDS)
+        ? Math.min(Math.floor((credentials.expiration.getTime() - Date.now()) / 1000), EXPIRY_IN_SECONDS)
         : EXPIRY_IN_SECONDS;
 
     // Sign request
