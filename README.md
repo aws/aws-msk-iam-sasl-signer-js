@@ -6,7 +6,8 @@
 
 `aws-msk-iam-sasl-signer-js` is the AWS MSK IAM SASL Signer for JavaScript programming language.
 
-The AWS MSK IAM SASL Signer for JavaScript is compatible with Node.js version 14.x and later.
+The AWS MSK IAM SASL Signer for JavaScript is compatible with Node.js version 15.7.x and later. And, within the 14.x series, it is compatible with version 14.18.x and later.
+- This library relies on base64url encoding, which is available in Node.js versions 14.18.0 and 15.7.0 onwards.
 
 Check out the [release notes](https://github.com/aws/aws-msk-iam-sasl-signer-js/blob/main/CHANGELOG.md) for information about the latest bug
 fixes, updates, and features added to the library.
