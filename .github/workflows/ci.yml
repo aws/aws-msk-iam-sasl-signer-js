@@ -18,17 +18,9 @@ jobs:
           - ubuntu-latest
           - windows-latest
         node-version:
-          - 14.x
           - 16.x
           - 18.x
           - 20.x
-        # Issue with npm6 on windows resulting in failing workflows:
-        # https://github.com/npm/cli/issues/4341#issuecomment-1040608101
-        # Since node14 is EOL, we can drop this set from our tests.
-        # We still test node14 on other platforms.
-        exclude:
-          - os: windows-latest
-            node-version: 14.x
 
     steps:
       - name: Checkout AWS MSK IAM SASL Signer for JavaScript Repository @ default branch latest
